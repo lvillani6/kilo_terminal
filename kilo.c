@@ -25,6 +25,7 @@ struct editorConfig E;
 /*** terminal ***/
 
 void die(const char *s) {
+	//handles closing when error occurs
 	write(STDOUT_FILENO, "\x1b[2J", 4);
 	write(STDOUT_FILENO, "\x1b[H", 3);
 
@@ -33,11 +34,13 @@ void die(const char *s) {
 }
 
 void disableRawMode() {
+	//reload original terminal attributes
 	if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1)
 		die("tcsetattr");
 }
 
 void enableRawMode() {
+	//load terminal attributes with requisite flags set to enable raw mode
 	if(tcgetattr(STDIN_FILENO, &E.orig_termios) == -1) die("tcgetattr");
 	atexit(disableRawMode);
 
@@ -53,6 +56,7 @@ void enableRawMode() {
 }
 
 char editorReadKey() {
+	//read keys with error handling
 	int nread;
 	char c;
 	while((nread = read(STDIN_FILENO, &c, 1)) != 1) {
@@ -62,6 +66,7 @@ char editorReadKey() {
 }
 
 int getCursorPosition(int *rows, int *cols) {
+	//get cursor position using VT100
 	char buf[32];
 	unsigned int i = 0;
 
@@ -81,6 +86,7 @@ int getCursorPosition(int *rows, int *cols) {
 }
 
 int getWindowSize(int *rows, int *cols) {
+	//get windows size using ioctl and secondarily using cursor positioning
 	struct winsize ws;
 
 	if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
@@ -96,6 +102,7 @@ int getWindowSize(int *rows, int *cols) {
 /*** output ***/
 
 void editorDrawRows() {
+	//draw tildes at the start of each row like vim
 	int y;
 	for(y = 0; y < E.screenrows; y++) {
 		write(STDOUT_FILENO, "~", 1);
@@ -107,6 +114,7 @@ void editorDrawRows() {
 }
 
 void editorRefreshScreen() {
+	//clear the screen and draw rows
 	write(STDOUT_FILENO, "\x1b[2J", 4);
 	write(STDOUT_FILENO, "\x1b[H", 3);
 
@@ -118,6 +126,7 @@ void editorRefreshScreen() {
 /*** input ***/
 
 void editorProcessKeypress() {
+	//handles keypresses
 	char c = editorReadKey();
 
 	switch(c) {
@@ -132,10 +141,12 @@ void editorProcessKeypress() {
 /*** init ***/
 
 void initEditor() {
+	//initialize editor
 	if(getWindowSize(&E.screenrows, &E.screencols) == -1) die("getWindowSize");
 }
 
 int main() {
+	//main function: drives editor
 	enableRawMode();
 	initEditor();
 
